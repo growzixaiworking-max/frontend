@@ -80,7 +80,8 @@ export default function Home() {
   const [missionStatus, setMissionStatus] = useState({ status: "Idle", last_mission: null });
   const [showUnverified, setShowUnverified] = useState(false);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+  // Production Fallback to ensure it always works
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://growzix-leads-backend.hf.space";
 
   useEffect(() => {
     fetchLeads();
