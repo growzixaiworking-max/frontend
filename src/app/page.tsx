@@ -4,67 +4,100 @@ import React, { useState, useMemo, useEffect, useCallback, memo } from "react";
 import { CATEGORIES, PLATFORMS } from "@/constants";
 
 // 1. MEMOIZED LEAD CARD (Absolute Performance)
-const LeadCard = memo(({ lead, index, onStatusUpdate }: { lead: any, index: number, onStatusUpdate: any }) => (
-  <div className="bg-white border border-slate-200/60 rounded-3xl p-5 md:p-6 hover:border-indigo-400/50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-12 relative overflow-hidden mb-4">
-    <div className="absolute top-0 left-0 bg-slate-100 text-slate-400 text-[9px] font-black px-2 py-1 rounded-br-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">#{index}</div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-3 mb-1.5 mt-2 md:mt-0">
-        <h3 className="text-[17px] font-black text-slate-800 tracking-tight truncate group-hover:text-indigo-600 transition-colors leading-none">{lead.name}</h3>
-        <div className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2.5 py-1 rounded-lg border border-indigo-100 uppercase tracking-tighter leading-none">#{lead.category}</div>
-        <div className="flex items-center text-amber-500 text-[13px] font-black bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 leading-none">
-          {lead.rating} ★ <span className="text-slate-400 font-bold ml-1 text-[10px]">({lead.reviews_count || 0})</span>
-        </div>
-        {lead.pipeline_status !== 'New' && (
-          <div className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${lead.pipeline_status === 'Contacted' ? 'bg-indigo-100 text-indigo-600' : 'bg-rose-100 text-red-600'}`}>
-            {lead.pipeline_status}
+const LeadCard = memo(({ lead, index, onStatusUpdate }: { lead: any, index: number, onStatusUpdate: any }) => {
+  const sendOutreach = () => {
+    const name = lead.name.split(' ')[0];
+    let message = "";
+
+    if (lead.quality_score === 'Prime Prospect') {
+      message = `Hi ${name}! I'm Alishba, a Website & AI Agent Developer. I came across your business and noticed you don't have a professional website yet. In today's market, a site with an AI agent can handle your customers 24/7 and grow your sales. I'd love to build a high-converting digital presence for you. Are you available for a quick chat?`;
+    } else if (lead.quality_score === 'High Priority') {
+      message = `Hi ${name}! I'm Alishba. I found your business and noticed you're doing great work, but you're missing a professional website to capture more leads. I specialize in creating AI-powered websites that turn visitors into paying customers. Would you be interested in seeing a mockup for your business?`;
+    } else {
+      message = `Hi ${name}! I'm Alishba, an AI Agent Developer. I saw your website and it looks good! However, I can help you integrate an AI Sales Agent that automatically answers customer queries and books appointments for you while you sleep. Would you like to see how this could work for your business?`;
+    }
+
+    const encodedMsg = encodeURIComponent(message);
+    if (lead.phone && lead.phone !== 'N/A') {
+      window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}?text=${encodedMsg}`, '_blank');
+    } else if (lead.email && lead.email !== 'N/A') {
+      window.open(`mailto:${lead.email}?subject=Business Growth Proposal - Alishba&body=${encodedMsg}`, '_blank');
+    } else {
+      alert("No contact method available for this lead!");
+    }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200/60 rounded-3xl p-5 md:p-6 hover:border-indigo-400/50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-12 relative overflow-hidden mb-4">
+      <div className="absolute top-0 left-0 bg-slate-100 text-slate-400 text-[9px] font-black px-2 py-1 rounded-br-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">#{index}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1.5 mt-2 md:mt-0">
+          <h3 className="text-[17px] font-black text-slate-800 tracking-tight truncate group-hover:text-indigo-600 transition-colors leading-none">{lead.name}</h3>
+          <div className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2.5 py-1 rounded-lg border border-indigo-100 uppercase tracking-tighter leading-none">#{lead.category}</div>
+          <div className="flex items-center text-amber-500 text-[13px] font-black bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 leading-none">
+            {lead.rating} ★ <span className="text-slate-400 font-bold ml-1 text-[10px]">({lead.reviews_count || 0})</span>
           </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 text-slate-500 text-xs font-bold leading-relaxed mb-3">
-        <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.name + ' ' + lead.address)}`} target="_blank" className="hover:text-indigo-600 transition-colors underline decoration-slate-200 underline-offset-4 truncate">{lead.address}</a>
-      </div>
-      <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-        <button onClick={() => onStatusUpdate(lead.id, 'Contacted')} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm">Mark Contacted</button>
-        <button onClick={() => onStatusUpdate(lead.id, 'Interesting')} className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all shadow-sm">High Priority</button>
-      </div>
-    </div>
-
-    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-10 shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
-      <div className="flex flex-col md:items-end gap-2 min-w-0 md:min-w-45">
-        <a href={`tel:${lead.phone}`} className="text-[15px] font-black text-slate-800 hover:text-indigo-600 transition-all font-mono tracking-tighter flex items-center justify-center md:justify-end gap-2.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 leading-none">
-          {lead.phone || 'MISSING_CONTACT'}
-        </a>
-        <a href={`mailto:${lead.email}`} className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 transition-colors lowercase tracking-tight flex items-center justify-center md:justify-end gap-2.5 underline decoration-indigo-100 underline-offset-8 leading-none">
-          <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-          {lead.email || 'B2B Verified Contact'}
-        </a>
-      </div>
-
-      <div className="flex gap-2.5 justify-center">
-        <a href={lead.website} target="_blank" className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center border border-slate-200 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition-all shadow-sm group/icon">
-          <svg className="w-5 h-5 text-slate-400 group-hover/icon:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9h18"></path></svg>
-        </a>
-        <a href={`https://wa.me/${lead.phone?.replace(/\D/g, '')}`} target="_blank" className="w-11 h-11 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100 hover:bg-emerald-600 hover:border-emerald-500 hover:text-white transition-all shadow-sm group/icon">
-          <svg className="w-5 h-5 text-emerald-600 group-hover/icon:text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.438-9.89 9.886-.001 2.15.633 4.192 1.815 5.834l-1.104 4.036 6.179-1.618z"></path></svg>
-        </a>
-      </div>
-
-      <div className="flex gap-2">
-        <div className={`px-4 py-2.5 rounded-2xl border-2 text-center min-w-[90px] flex flex-col justify-center ${lead.verification_status === 'Verified' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-          <div className="text-[12px] font-black uppercase tracking-tight leading-none">{lead.verification_status || 'Unverified'}</div>
-          <div className="text-[7px] font-black tracking-widest opacity-50 uppercase mt-1 leading-none">Deliverability</div>
+          {lead.pipeline_status !== 'New' && (
+            <div className={`text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest ${lead.pipeline_status === 'Contacted' ? 'bg-indigo-100 text-indigo-600' : 'bg-rose-100 text-red-600'}`}>
+              {lead.pipeline_status}
+            </div>
+          )}
         </div>
-
-        <div className={`px-4 py-2.5 rounded-2xl border-2 text-center min-w-[90px] flex flex-col justify-center ${lead.quality_score === 'High' ? 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-lg shadow-indigo-500/5' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-          <div className="text-[12px] font-black uppercase tracking-tight leading-none">{lead.quality_score}</div>
-          <div className="text-[7px] font-black tracking-widest opacity-50 uppercase mt-1 leading-none">Trust Score</div>
+        <div className="flex items-center gap-2 text-slate-500 text-xs font-bold leading-relaxed mb-3">
+          <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+          <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.name + ' ' + lead.address)}`} target="_blank" className="hover:text-indigo-600 transition-colors underline decoration-slate-200 underline-offset-4 truncate">{lead.address}</a>
+        </div>
+        <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onStatusUpdate(lead.id, 'Contacted')} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all shadow-sm">Mark Contacted</button>
+          <button onClick={() => onStatusUpdate(lead.id, 'Interesting')} className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all shadow-sm">High Priority</button>
         </div>
       </div>
+
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 md:gap-10 shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
+        <div className="flex flex-col md:items-end gap-2 min-w-0 md:min-w-45">
+          <button onClick={sendOutreach} className="w-full py-2 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            Message as Alishba
+          </button>
+          <a href={`tel:${lead.phone}`} className="text-[15px] font-black text-slate-800 hover:text-indigo-600 transition-all font-mono tracking-tighter flex items-center justify-center md:justify-end gap-2.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 leading-none">
+            {lead.phone || 'MISSING_CONTACT'}
+          </a>
+          <a href={`mailto:${lead.email}`} className="text-[11px] font-black text-indigo-500 hover:text-indigo-700 transition-colors lowercase tracking-tight flex items-center justify-center md:justify-end gap-2.5 underline decoration-indigo-100 underline-offset-8 leading-none">
+            <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            {lead.email || 'B2B Verified Contact'}
+          </a>
+        </div>
+
+        <div className="flex gap-2.5 justify-center">
+          <a href={lead.website} target="_blank" className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center border border-slate-200 hover:bg-indigo-600 hover:border-indigo-500 hover:text-white transition-all shadow-sm group/icon">
+            <svg className="w-5 h-5 text-slate-400 group-hover/icon:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9h18"></path></svg>
+          </a>
+          <a href={`https://wa.me/${lead.phone?.replace(/\D/g, '')}`} target="_blank" className="w-11 h-11 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100 hover:bg-emerald-600 hover:border-emerald-500 hover:text-white transition-all shadow-sm group/icon">
+            <svg className="w-5 h-5 text-emerald-600 group-hover/icon:text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.438 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.438-9.89 9.886-.001 2.15.633 4.192 1.815 5.834l-1.104 4.036 6.179-1.618z"></path></svg>
+          </a>
+        </div>
+
+        <div className="flex gap-2">
+          <div className={`px-4 py-2.5 rounded-2xl border-2 text-center min-w-[90px] flex flex-col justify-center ${lead.verification_status === 'Verified' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+            <div className="text-[12px] font-black uppercase tracking-tight leading-none">{lead.verification_status || 'Unverified'}</div>
+            <div className="text-[7px] font-black tracking-widest opacity-50 uppercase mt-1 leading-none">Deliverability</div>
+          </div>
+
+          <div className={`px-4 py-2.5 rounded-2xl border-2 text-center min-w-[90px] flex flex-col justify-center ${
+            lead.quality_score === 'Prime Prospect' ? 'bg-amber-50 border-amber-400 text-amber-700 shadow-[0_0_15px_rgba(251,191,36,0.4)] animate-pulse' : 
+            lead.quality_score === 'High Priority' ? 'bg-indigo-50 border-indigo-400 text-indigo-700 shadow-lg shadow-indigo-500/10' : 
+            lead.quality_score === 'Standard' ? 'bg-blue-50 border-blue-200 text-blue-700' : 
+            'bg-slate-50 border-slate-200 text-slate-500'
+          }`}>
+            <div className="text-[12px] font-black uppercase tracking-tight leading-none">{lead.quality_score || 'Standard'}</div>
+            <div className="text-[7px] font-black tracking-widest opacity-50 uppercase mt-1 leading-none">Lead Rank</div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute left-0 top-0 w-1.5 h-full bg-linear-to-b from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
     </div>
-    <div className="absolute left-0 top-0 w-1.5 h-full bg-linear-to-b from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-  </div>
-));
+  );
+});
 LeadCard.displayName = 'LeadCard';
 
 // 2. MAIN APP
@@ -81,7 +114,7 @@ export default function Home() {
   const [showUnverified, setShowUnverified] = useState(false);
 
   // Production Fallback to ensure it always works
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://growzix-leads-backend.hf.space";
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
     fetchLeads();
@@ -215,6 +248,31 @@ export default function Home() {
     a.click();
   };
 
+  const sendAllVIPs = async () => {
+    const vips = leads.filter(l => (l.quality_score === 'Prime Prospect' || l.quality_score === 'High Priority') && l.email && l.email !== 'N/A');
+    if (vips.length === 0) return alert("No VIP leads with emails found!");
+    
+    if (!confirm(`Found ${vips.length} VIPs. Send them all personalized emails as Alishba?`)) return;
+    
+    setLoading(true);
+    try {
+      for (const lead of vips) {
+        const name = lead.name.split(' ')[0];
+        let message = lead.quality_score === 'Prime Prospect' 
+          ? `Hi ${name}! I'm Alishba, a Website & AI Agent Developer. I came across your business and noticed you don't have a professional website yet. I'd love to build a high-converting digital presence for you. Are you available for a quick chat?`
+          : `Hi ${name}! I'm Alishba. I noticed you're doing great work, but you're missing a professional website to capture more leads. I specialize in AI-powered websites. Would you be interested in a mockup?`;
+        
+        await fetch(`${API_BASE}/send-outreach?lead_id=${lead.id}&message=${encodeURIComponent(message)}`, { method: "POST" });
+      }
+      alert(`Successfully sent ${vips.length} VIP emails!`);
+      fetchLeads();
+    } catch (error) {
+      alert("Error sending bulk emails.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex flex-col lg:flex-row h-screen bg-white text-slate-700 font-sans overflow-hidden text-sm">
       {/* Mobile Header */}
@@ -278,6 +336,10 @@ export default function Home() {
              <button onClick={verifyAll} disabled={missionStatus.status !== "Idle"} className="py-2.5 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-emerald-100 hover:bg-emerald-600 hover:text-white disabled:opacity-50 transition-all">Verify All</button>
              <button onClick={wipeData} className="py-2.5 bg-rose-50 text-rose-700 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-rose-100 hover:bg-rose-600 hover:text-white transition-all">Wipe DB</button>
           </div>
+          <button onClick={sendAllVIPs} disabled={loading || leads.length === 0} className="w-full py-3 mb-3 bg-amber-50 text-amber-700 rounded-xl font-black text-[10px] uppercase tracking-widest border border-amber-200 hover:bg-amber-600 hover:text-white transition-all flex items-center justify-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            Auto-Send VIP Emails
+          </button>
           <button onClick={startScraping} disabled={loading || missionStatus.status !== "Idle"} className={`w-full py-4.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl ${loading || missionStatus.status !== "Idle" ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20'}`}>
             {missionStatus.status === "Scanning" ? "Scanning..." : missionStatus.status === "Verifying" ? "Verifying..." : "Initialize Scan"}
           </button>
